@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fastra AI</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#fff}
+.bg-animation{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:hidden}
+.dot{position:absolute;background:#fff;border-radius:50%;opacity:0;animation:fall linear infinite;box-shadow:0 0 6px rgba(255,255,255,.8)}
+@keyframes fall{0%{transform:translateY(-10vh);opacity:0}10%{opacity:.8}90%{opacity:.8}100%{transform:translateY(110vh) translateX(20px);opacity:0}}
+.app{position:relative;z-index:1;width:100%;height:100%;display:flex;flex-direction:column;background:rgba(10,10,10,.85);backdrop-filter:blur(2px)}
+.header{flex-shrink:0;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;background:rgba(10,10,10,.9);z-index:10}
+.header-left{display:flex;align-items:center;gap:10px}
+.logo{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;animation:spinLogo 8s linear infinite}
+@keyframes spinLogo{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.header h1{font-size:15px;font-weight:700;letter-spacing:2px}
+.header-status{font-size:10px;color:#666;letter-spacing:1px}
+.menu-btn{width:36px;height:36px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-left:8px}
+.menu-btn svg{width:16px;height:16px;fill:#fff}
+.chat{flex:1;padding:16px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.chat::-webkit-scrollbar{width:2px}
+.chat::-webkit-scrollbar-thumb{background:#333}
+.msg{max-width:85%;padding:12px 16px;font-size:14px;line-height:1.45;word-wrap:break-word;border-radius:18px;animation:msgAppear .3s cubic-bezier(.18,.89,.32,1.28);white-space:pre-wrap}
+@keyframes msgAppear{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.msg.user{background:#1E90FF;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.ai{background:#1a1a1a;color:#e0e0e0;align-self:flex-start;border-bottom-left-radius:4px;border:1px solid #252525}
+.msg.system{background:transparent;color:#666;font-size:11px;align-self:center;text-align:center;max-width:95%;padding:6px 0}
+.msg.typing{color:#666;font-style:italic}
+.input-area{flex-shrink:0;padding:12px;display:flex;gap:8px;align-items:center;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+.input-area input{flex:1;min-width:0;background:#111;border:1px solid #222;border-radius:24px;padding:14px 20px;color:#fff;font-size:14px;outline:none}
+.input-area input:focus{border-color:#1E90FF}
+.input-area input::placeholder{color:#444}
+.btn-round{width:48px;height:48px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.btn-round:active{transform:scale(.95)}
+.btn-round:disabled{opacity:.4}
+.btn-round svg{width:20px;height:20px;fill:#fff}
+.btn-round.send{background:#1E90FF;border-color:#1E90FF}
+.menu-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);display:none;z-index:99}
+.menu-overlay.active{display:block}
+.menu{position:fixed;top:60px;right:12px;background:#111;border:1px solid #222;border-radius:16px;padding:8px;display:none;flex-direction:column;gap:4px;z-index:100;min-width:220px;box-shadow:0 10px 40px rgba(0,0,0,.8)}
+.menu.active{display:flex}
+.menu-item{padding:14px 18px;background:transparent;border:none;color:#fff;font-size:13px;font-weight:500;text-align:left;cursor:pointer;border-radius:10px;display:flex;align-items:center;gap:12px}
+.menu-item:active{background:#1a1a1a}
+.menu-item.danger{color:#ff6666}
+.menu-item .icon{width:18px;height:18px;fill:#888}
+.menu-item.danger .icon{fill:#ff6666}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.95);display:none;justify-content:center;align-items:center;z-index:200;padding:12px}
+.modal-overlay.active{display:flex}
+.modal{background:#111;border:1px solid #222;border-radius:20px;width:100%;max-width:500px;max-height:90vh;padding:20px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.modal h2{font-size:15px;font-weight:700}
+.modal p{font-size:12px;color:#666;line-height:1.5}
+.modal input,.modal select,.modal textarea{width:100%;background:#0a0a0a;border:1px solid #222;border-radius:12px;padding:12px;color:#fff;font-size:13px;outline:none;font-family:monospace}
+.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:#1E90FF}
+.modal textarea{min-height:100px;resize:vertical}
+.modal-buttons{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.modal-btn{padding:12px 20px;border-radius:12px;background:#1a1a1a;border:1px solid #2a2a2a;color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+.modal-btn.primary{background:#1E90FF;border-color:#1E90FF}
+.modal-btn.danger{background:#2a1a1a;border-color:#4a2a2a;color:#ff6666}
+</style>
+</head>
+<body>
+<div class="bg-animation" id="bgAnimation"></div>
+<div class="app">
+<div class="header">
+<div class="header-left">
+<svg class="logo" viewBox="0 0 200 200"><circle cx="100" cy="100" r="20"/><path d="M100 80 L100 20 Q100 10 110 20 L140 60 Q150 75 130 85 Z"/><path d="M100 120 L100 180 Q100 190 90 180 L60 140 Q50 125 70 115 Z"/><path d="M80 100 L20 100 Q10 100 20 90 L60 60 Q75 50 85 70 Z"/><path d="M120 100 L180 100 Q190 100 180 110 L140 140 Q125 150 115 130 Z"/><path d="M85 85 L40 40 Q30 30 45 35 L85 55 Q95 65 90 80 Z"/><path d="M115 115 L160 160 Q170 170 155 165 L115 145 Q105 135 110 120 Z"/></svg>
+<h1>FASTRA</h1>
+</div>
+<div style="display:flex;align-items:center;">
+<div class="header-status" id="statusText">Groq</div>
+<div class="menu-btn" id="menuBtn"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></div>
+</div>
+</div>
+<div class="chat" id="chat"><div class="msg ai">Привет. Я Fastra AI. Спрашивай что угодно.</div></div>
+<div class="input-area">
+<button class="btn-round" id="clearChatBtn" title="Очистить чат"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+<input type="text" id="userInput" placeholder="Сообщение..." autocomplete="off">
+<button class="btn-round send" id="sendBtn"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+</div>
+</div>
+<div class="menu-overlay" id="menuOverlay"></div>
+<div class="menu" id="menu">
+<button class="menu-item" id="settingsBtn"><svg class="icon" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>Настройки API</button>
+<button class="menu-item danger" id="clearBtn"><svg class="icon" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>Сбросить всё</button>
+</div>
+<div class="modal-overlay" id="settingsModal">
+<div class="modal">
+<h2>Настройки API</h2>
+<p>API ключ Groq. Получить: console.groq.com → API Keys</p>
+<input type="password" id="apiKeyInput" placeholder="gsk_...">
+<p>Модель</p>
+<select id="modelSelect">
+<option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (умная)</option>
+<option value="llama-3.1-8b-instant">llama-3.1-8b-instant (быстрая)</option>
+<option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
+<option value="gemma2-9b-it">gemma2-9b-it</option>
+</select>
+<p>Характер ИИ</p>
+<textarea id="systemPromptInput" placeholder="Ты Fastra AI..."></textarea>
+<div class="modal-buttons">
+<button class="modal-btn danger" id="closeSettingsBtn">Отмена</button>
+<button class="modal-btn primary" id="saveSettingsBtn">Сохранить</button>
+</div>
+</div>
+</div>
+<script>
+// ============================================================
+// 👇👇👇 ЗАМЕНИ ЗДЕСЬ СВОЙ API КЛЮЧ 👇👇👇
+// ============================================================
+const DEFAULT_API_KEY = "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";
+// ============================================================
+// 👆👆👆 ЗАМЕНИ ЗДЕСЬ СВОЙ API КЛЮЧ 👆👆👆
+// ============================================================
+
+const DEFAULT_MODEL = "llama-3.3-70b-versatile";
+const DEFAULT_PROMPT = "Ты Fastra AI — дружелюбный помощник. Отвечай по-русски, коротко и по делу. Можешь шутить. Не отказывай в помощи.";
+
+// ФОН
+const bgAnimation=document.getElementById('bgAnimation');
+for(let i=0;i<40;i++){const dot=document.createElement('div');dot.classList.add('dot');const size=Math.random()*3+1;dot.style.width=size+'px';dot.style.height=size+'px';dot.style.left=Math.random()*100+'%';dot.style.animationDuration=(Math.random()*8+6)+'s';dot.style.animationDelay=(Math.random()*10)+'s';bgAnimation.appendChild(dot)}
+
+let apiKey=localStorage.getItem('fastra_api_key')||DEFAULT_API_KEY;
+let model=localStorage.getItem('fastra_model')||DEFAULT_MODEL;
+let systemPrompt=localStorage.getItem('fastra_prompt')||DEFAULT_PROMPT;
+let messages=[{role:"system",content:systemPrompt}];
+
+// ПРОКСИ ДЛЯ ОБХОДА CORS (работает через 127.0.0.1)
+const CORS_PROXIES=[
+"https://corsproxy.io/?",
+"https://api.allorigins.win/raw?url=",
+"https://cors.eu.org/"
+];
+
+const chat=document.getElementById('chat');
+const userInput=document.getElementById('userInput');
+const sendBtn=document.getElementById('sendBtn');
+const clearChatBtn=document.getElementById('clearChatBtn');
+const menuBtn=document.getElementById('menuBtn');
+const menu=document.getElementById('menu');
+const menuOverlay=document.getElementById('menuOverlay');
+const settingsBtn=document.getElementById('settingsBtn');
+const clearBtn=document.getElementById('clearBtn');
+const settingsModal=document.getElementById('settingsModal');
+const apiKeyInput=document.getElementById('apiKeyInput');
+const modelSelect=document.getElementById('modelSelect');
+const systemPromptInput=document.getElementById('systemPromptInput');
+const saveSettingsBtn=document.getElementById('saveSettingsBtn');
+const closeSettingsBtn=document.getElementById('closeSettingsBtn');
+const statusText=document.getElementById('statusText');
+
+function addMessage(text,sender,isTyping=false){
+const div=document.createElement('div');
+div.classList.add('msg',sender);
+if(isTyping)div.classList.add('typing');
+div.textContent=text;
+chat.appendChild(div);
+chat.scrollTop=chat.scrollHeight;
+return div;
+}
+
+function updateStatus(){statusText.textContent=model.split('-')[0].toUpperCase()}
+
+// ЗАПРОС С ОБХОДОМ CORS ЧЕРЕЗ 3 ПРОКСИ С ТАЙМАУТОМ
+async function sendToGroq(userText){
+if(!apiKey||!apiKey.startsWith('gsk_')){
+addMessage("Ошибка: нет API ключа. Меню → Настройки API.",'system');
+return;
+}
+messages.push({role:"user",content:userText});
+const typingDiv=addMessage("Печатает...",'ai',true);
+sendBtn.disabled=true;
+
+const body=JSON.stringify({
+model:model,
+messages:messages,
+temperature:0.8,
+max_tokens:1024
+});
+const targetUrl="https://api.groq.com/openai/v1/chat/completions";
+
+let success=false;
+let lastError="";
+
+for(let i=0;i<CORS_PROXIES.length;i++){
+const proxy=CORS_PROXIES[i];
+typingDiv.textContent="Пробую прокси "+(i+1)+"/"+CORS_PROXIES.length+"...";
+try{
+const url=proxy+encodeURIComponent(targetUrl);
+const controller=new AbortController();
+const timeoutId=setTimeout(()=>controller.abort(),15000);
+const response=await fetch(url,{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+apiKey
+},
+body:body,
+signal:controller.signal
+});
+clearTimeout(timeoutId);
+
+if(!response.ok){
+const err=await response.text();
+lastError="HTTP "+response.status+": "+err.substring(0,150);
+continue;
+}
+const data=await response.json();
+const aiText=data.choices[0].message.content;
+typingDiv.remove();
+addMessage(aiText,'ai');
+messages.push({role:"assistant",content:aiText});
+if(messages.length>20)messages=[messages[0],...messages.slice(-18)];
+success=true;
+break;
+}catch(e){
+if(e.name==='AbortError')lastError="Таймаут прокси "+(i+1);
+else lastError=e.message;
+continue;
+}
+}
+
+if(!success){
+typingDiv.remove();
+addMessage("Ошибка: "+lastError+"\n\nПроверь ключ или создай новый в console.groq.com",'system');
+}
+sendBtn.disabled=false;
+userInput.focus();
+}
+
+function handleSend(){
+const text=userInput.value.trim();
+if(!text||sendBtn.disabled)return;
+addMessage(text,'user');
+userInput.value='';
+sendToGroq(text);
+}
+
+sendBtn.addEventListener('click',handleSend);
+userInput.addEventListener('keydown',(e)=>{if(e.key==='Enter')handleSend()});
+
+clearChatBtn.addEventListener('click',()=>{
+if(confirm("Очистить чат?")){
+chat.innerHTML='';
+messages=[{role:"system",content:systemPrompt}];
+addMessage("Чат очищен.",'system');
+}
+});
+
+menuBtn.addEventListener('click',()=>{menu.classList.toggle('active');menuOverlay.classList.toggle('active')});
+menuOverlay.addEventListener('click',()=>{menu.classList.remove('active');menuOverlay.classList.remove('active')});
+
+settingsBtn.addEventListener('click',()=>{
+menu.classList.remove('active');menuOverlay.classList.remove('active');
+apiKeyInput.value=apiKey;
+modelSelect.value=model;
+systemPromptInput.value=systemPrompt;
+settingsModal.classList.add('active');
+});
+
+closeSettingsBtn.addEventListener('click',()=>settingsModal.classList.remove('active'));
+
+saveSettingsBtn.addEventListener('click',()=>{
+const newKey=apiKeyInput.value.trim();
+const newModel=modelSelect.value;
+const newPrompt=systemPromptInput.value.trim();
+if(newKey)apiKey=newKey;
+if(newModel)model=newModel;
+if(newPrompt)systemPrompt=newPrompt;
+localStorage.setItem('fastra_api_key',apiKey);
+localStorage.setItem('fastra_model',model);
+localStorage.setItem('fastra_prompt',systemPrompt);
+messages=[{role:"system",content:systemPrompt}];
+settingsModal.classList.remove('active');
+updateStatus();
+addMessage("Настройки сохранены.",'system');
+});
+
+clearBtn.addEventListener('click',()=>{
+menu.classList.remove('active');menuOverlay.classList.remove('active');
+if(confirm("Сбросить всё?")){
+localStorage.removeItem('fastra_api_key');
+localStorage.removeItem('fastra_model');
+localStorage.removeItem('fastra_prompt');
+apiKey=DEFAULT_API_KEY;model=DEFAULT_MODEL;systemPrompt=DEFAULT_PROMPT;
+messages=[{role:"system",content:systemPrompt}];
+chat.innerHTML='';
+addMessage("Всё сброшено.",'system');
+updateStatus();
+}
+});
+
+settingsModal.addEventListener('click',(e)=>{if(e.target===settingsModal)settingsModal.classList.remove('active')});
+
+updateStatus();
+userInput.focus();
+</script>
+</body>
+</html>
